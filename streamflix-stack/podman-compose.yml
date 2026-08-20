@@ -1,0 +1,110 @@
+version: "3.8"
+
+networks:
+  streamflix-net:
+    driver: bridge
+
+volumes:
+  psql-data:
+
+services:
+  # ---------- data layer ----------
+  database:
+    image: docker.io/library/postgres:16
+    container_name: database
+    environment:
+      POSTGRES_DB: streamflix
+      POSTGRES_USER: streamflix
+      POSTGRES_PASSWORD: streamflixpass
+    volumes:
+      - psql-data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks: [streamflix-net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U streamflix"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: docker.io/library/redis:7-alpine
+    container_name: redis
+    networks: [streamflix-net]
+    ports:
+      - "6379:6379"
+
+  # ---------- Java: events/alarms engine ----------
+  core-engine:
+    build: ./core-engine
+    container_name: core-engine
+    depends_on:
+      database:
+        condition: service_healthy
+    networks: [streamflix-net]
+    ports:
+      - "8981:8981"
+
+  # ---------- Python: customer-facing API ----------
+  catalog-api:
+    build: ./catalog-api
+    container_name: catalog-api
+    depends_on:
+      database:
+        condition: service_healthy
+      core-engine:
+        condition: service_started
+    networks: [streamflix-net]
+
+  web-ui:
+    build: ./web-ui
+    container_name: web-ui
+    networks: [streamflix-net]
+
+  edge-lb:
+    build: ./edge-lb
+    container_name: edge-lb
+    depends_on: [catalog-api, web-ui]
+    networks: [streamflix-net]
+    ports:
+      - "8080:8080"
+
+  chaos-agent:
+    build: ./chaos-agent
+    container_name: chaos-agent
+    depends_on: [catalog-api, core-engine]
+    networks: [streamflix-net]
+
+  northbound:
+    build: ./northbound
+    container_name: northbound
+    depends_on: [core-engine, database]
+    networks: [streamflix-net]
+    ports:
+      - "9000:9000"
+
+  # ---------- Go: concurrent device simulator + event bus ----------
+  device-gateway:
+    build: ./device-gateway
+    container_name: device-gateway
+    environment:
+      NUM_DEVICES: "12"
+      NUM_WORKERS: "4"
+      REDIS_ADDR: "redis:6379"
+      EVENT_INTERVAL_MS: "2000"
+    depends_on: [redis]
+    networks: [streamflix-net]
+    ports:
+      - "8082:8082"
+
+  # ---------- Go: identity, authorization, roles/permissions ----------
+  auth-service:
+    build: ./auth-service
+    container_name: auth-service
+    environment:
+      AUTH_SECRET: "dev-secret-change-me"
+      HTTP_ADDR: ":8083"
+    networks: [streamflix-net]
+    ports:
+      - "8083:8083"
