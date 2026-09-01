@@ -1,0 +1,25 @@
+# The build stage needs real internet access to Maven Central (for Spring Boot deps AND for
+# protobuf-maven-plugin to download a matching protoc binary the first time) -- this is expected
+# to run on your own machine, not in a network-restricted sandbox.
+FROM docker.io/library/maven:3.9-eclipse-temurin-21 AS build
+WORKDIR /build
+COPY pom.xml .
+RUN mvn -q -e -B dependency:go-offline
+COPY src ./src
+RUN mvn -q -B clean package -DskipTests
+
+FROM docker.io/library/eclipse-temurin:21-jre-jammy
+WORKDIR /app
+RUN useradd --system --create-home appuser
+COPY --from=build /build/target/*.jar app.jar
+USER appuser
+EXPOSE 9090
+
+# -XX:+UseZGC -XX:+ZGenerational: the exact JVM flags the blog describes Netflix switching to
+# fleet-wide -- low-pause garbage collection that (per their numbers) traded a bit more CPU for
+# pause times close to zero, even under heavy load. Both flags are needed together on JDK 21;
+# generational mode became ZGC's ONLY mode starting JDK 23, at which point -XX:+ZGenerational
+# is unrecognized and can be dropped. We pin to JDK 21 (an LTS release, and one of the two
+# versions -- 21 and 25 -- the talk says Netflix runs) specifically so these flags are correct
+# as written.
+ENTRYPOINT ["java", "-XX:+UseZGC", "-XX:+ZGenerational", "-jar", "/app/app.jar"]

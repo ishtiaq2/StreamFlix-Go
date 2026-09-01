@@ -1,0 +1,38 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: titles-dgs
+  # This one property is the entirety of what it takes to switch this service's embedded
+  # Tomcat over to virtual threads (Java 21+): every incoming HTTP request (and therefore every
+  # GraphQL execution) now runs on a virtual thread instead of a pooled platform thread. No
+  # application code changes -- this is exactly the "developers don't need to use new APIs"
+  # behavior the blog describes.
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    url: jdbc:h2:mem:titlesdb;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    defer-datasource-initialization: true
+  sql:
+    init:
+      mode: always
+  graphql:
+    graphiql:
+      # Serves an interactive GraphQL IDE at /graphiql -- handy for poking at THIS service
+      # directly during development, separate from the gateway's own GraphiQL at the edge.
+      enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

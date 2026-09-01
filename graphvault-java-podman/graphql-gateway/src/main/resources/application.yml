@@ -1,0 +1,31 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: graphql-gateway
+  threads:
+    virtual:
+      enabled: true
+
+# This whole block is the gateway's entire "routing table" -- see GatewayProperties.java for
+# what it means. Container names (titles-dgs, artwork-dgs, availability-dgs) resolve via
+# Podman's built-in network DNS; there's no service registry involved (contrast this with
+# StreamVault/SoundVault elsewhere in this project series, which used Eureka -- see
+# docs/ARCHITECTURE_VS_BLOG.md for why this repo deliberately does NOT).
+graphvault:
+  subgraphs:
+    titles-dgs: http://titles-dgs:8081/graphql
+    artwork-dgs: http://artwork-dgs:8082/graphql
+    availability-dgs: http://availability-dgs:8083/graphql
+  field-owners:
+    titles: titles-dgs
+    title: titles-dgs
+    artworkForTitle: artwork-dgs
+    availabilityForTitle: availability-dgs
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

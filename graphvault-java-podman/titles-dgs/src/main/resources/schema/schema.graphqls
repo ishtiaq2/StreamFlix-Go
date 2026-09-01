@@ -1,0 +1,20 @@
+# DGS discovers every .graphqls file under src/main/resources/schema/ and stitches them into
+# one executable schema for this service. This is the ENTIRE public contract for titles-dgs —
+# no Java interface, no OpenAPI spec, just this file. Every @DgsQuery / @DgsData method in
+# TitleDataFetcher.java is matched against a field declared here by name; a mismatch fails at
+# startup, not silently at request time.
+
+type Query {
+    "All titles in the catalog."
+    titles: [Title]
+
+    "A single title by ID, or null if it doesn't exist."
+    title(id: ID!): Title
+}
+
+type Title {
+    id: ID!
+    name: String!
+    releaseYear: Int!
+    synopsis: String
+}

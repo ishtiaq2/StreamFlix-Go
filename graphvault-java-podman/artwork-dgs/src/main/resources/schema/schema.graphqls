@@ -1,0 +1,16 @@
+# Notice this schema references "titleId", a plain scalar -- it does NOT declare a `Title`
+# type or try to extend one. Real Apollo Federation would let this subgraph declare
+# `extend type Title @key(fields: "id") { artwork: [Artwork] }`, and a federation-aware
+# gateway would stitch that onto titles-dgs's Title type automatically. Hand-rolling that
+# stitching logic is exactly what our graphql-gateway module does instead, in plain Java —
+# see docs/ARCHITECTURE_VS_BLOG.md for why we simplified it this way.
+
+type Query {
+    "Artwork for a given title ID."
+    artworkForTitle(titleId: ID!): [Artwork]
+}
+
+type Artwork {
+    type: String!
+    url: String!
+}

@@ -1,0 +1,30 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: artwork-dgs
+  threads:
+    virtual:
+      enabled: true
+  graphql:
+    graphiql:
+      enabled: true
+
+# grpc-client-spring-boot-starter reads grpc.client.<name>.* where <name> matches the string
+# passed to @GrpcClient("asset-service") in ArtworkDataFetcher. "static://" means "resolve this
+# to a fixed address" -- here, Podman's built-in container-name DNS resolves "asset-service" to
+# whichever container(s) are running under that compose service name, which is the load
+# balancing story explained in docs/ARCHITECTURE_VS_BLOG.md (no Eureka needed for this repo's
+# scale; real Netflix's actual equivalent is a proxy-based service mesh, not this).
+grpc:
+  client:
+    asset-service:
+      address: static://asset-service:9090
+      negotiationType: plaintext
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

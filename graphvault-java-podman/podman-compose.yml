@@ -1,0 +1,71 @@
+# Run with: podman-compose -f podman-compose.yml up --build
+#
+# Container names below (asset-service, titles-dgs, artwork-dgs, availability-dgs,
+# graphql-gateway-1/2) matter beyond cosmetics: Podman's built-in network DNS resolves them by
+# these exact names, which is EXACTLY what every application.yml in this repo assumes (e.g.
+# artwork-dgs's grpc.client.asset-service.address: static://asset-service:9090). Rename a
+# service here and you must update the corresponding application.yml too.
+
+version: "3.9"
+
+services:
+
+  asset-service:
+    build: ./asset-service
+    container_name: asset-service
+    ports:
+      - "9090:9090"
+
+  titles-dgs:
+    build: ./titles-dgs
+    container_name: titles-dgs
+    ports:
+      - "8081:8081"
+
+  artwork-dgs:
+    build: ./artwork-dgs
+    container_name: artwork-dgs
+    ports:
+      - "8082:8082"
+    depends_on:
+      - asset-service
+
+  availability-dgs:
+    build: ./availability-dgs
+    container_name: availability-dgs
+    ports:
+      - "8083:8083"
+
+  # Two replicas of the SAME gateway image, each with its own container name so nginx-lb's
+  # upstream block (nginx-lb/nginx.conf) can address them individually. podman-compose doesn't
+  # support Docker Compose's `deploy.replicas` the way Swarm does, so we declare replicas
+  # explicitly as separate services -- a bit more verbose, but transparent about exactly what's
+  # running where, which fits this repo's teaching goals better than a `--scale` flag would.
+  graphql-gateway-1:
+    build: ./graphql-gateway
+    container_name: graphql-gateway-1
+    ports:
+      - "8080:8080"
+    depends_on:
+      - titles-dgs
+      - artwork-dgs
+      - availability-dgs
+
+  graphql-gateway-2:
+    build: ./graphql-gateway
+    container_name: graphql-gateway-2
+    ports:
+      - "8180:8080"
+    depends_on:
+      - titles-dgs
+      - artwork-dgs
+      - availability-dgs
+
+  nginx-lb:
+    build: ./nginx-lb
+    container_name: nginx-lb
+    ports:
+      - "80:80"
+    depends_on:
+      - graphql-gateway-1
+      - graphql-gateway-2

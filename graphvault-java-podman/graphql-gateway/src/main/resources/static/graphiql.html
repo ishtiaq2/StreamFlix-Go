@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>GraphVault — GraphQL Gateway Explorer</title>
+  <!--
+    Every other DGS in this repo gets a free GraphiQL page at /graphiql courtesy of Spring
+    GraphQL's `spring.graphql.graphiql.enabled: true` property. The gateway isn't a Spring
+    GraphQL / DGS app at all (it's a plain @RestController hand-rolling federation-lite — see
+    QueryPlanner.java) so it doesn't get that for free. This file wires up the same GraphiQL UI
+    by hand, straight from its CDN bundle, pointed at this gateway's own /graphql endpoint.
+    It's a static file (Spring Boot serves anything under src/main/resources/static/
+    automatically) with zero server-side involvement beyond that.
+  -->
+  <link rel="stylesheet" href="https://unpkg.com/graphiql@3/graphiql.min.css" />
+  <style>
+    body { margin: 0; height: 100vh; }
+    #graphiql { height: 100vh; }
+    .banner {
+      font-family: -apple-system, sans-serif;
+      font-size: 12px;
+      background: #24292f;
+      color: #fff;
+      padding: 6px 12px;
+    }
+    .banner code { background: rgba(255,255,255,0.15); padding: 1px 5px; border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <div class="banner">
+    GraphVault gateway — fan-out is by TOP-LEVEL FIELD only (no nested cross-subgraph fields),
+    and arguments must be literals, not <code>$variables</code>. See README for a ready-made
+    example query.
+  </div>
+  <div id="graphiql">Loading GraphiQL…</div>
+
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/graphiql@3/graphiql.min.js"></script>
+  <script>
+    const fetcher = GraphiQL.createFetcher({ url: '/graphql' });
+    const defaultQuery = `# Try this -- it fans out to all three DGSs behind the gateway in parallel:
+query {
+  title(id: "1") {
+    id
+    name
+    releaseYear
+    synopsis
+  }
+  artworkForTitle(titleId: "1") {
+    type
+    url
+  }
+  availabilityForTitle(titleId: "1") {
+    region
+    available
+  }
+}`;
+
+    const root = ReactDOM.createRoot(document.getElementById('graphiql'));
+    root.render(
+      React.createElement(GraphiQL, { fetcher: fetcher, defaultQuery: defaultQuery })
+    );
+  </script>
+</body>
+</html>

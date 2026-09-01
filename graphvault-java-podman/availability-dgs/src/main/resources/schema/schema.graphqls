@@ -1,0 +1,9 @@
+type Query {
+    "Per-region availability for a given title ID."
+    availabilityForTitle(titleId: ID!): [Availability]
+}
+
+type Availability {
+    region: String!
+    available: Boolean!
+}

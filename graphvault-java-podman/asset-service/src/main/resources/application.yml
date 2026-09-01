@@ -1,0 +1,24 @@
+spring:
+  application:
+    name: asset-service
+
+# grpc-server-spring-boot-starter reads this "grpc.server.*" tree (not "server.*" -- that's for
+# an embedded servlet container, which this app doesn't have). Port 9090 is the starter's own
+# default; set explicitly here so it's visible without reading library defaults.
+grpc:
+  server:
+    port: 9090
+    # Plaintext (no TLS) on purpose -- this is a learning project talking over a private Podman
+    # network. Real Netflix's internal gRPC traffic runs over mTLS via their service mesh
+    # (ProxyD); see docs/ARCHITECTURE_VS_BLOG.md.
+    security:
+      enabled: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  health:
+    grpc:
+      enabled: true

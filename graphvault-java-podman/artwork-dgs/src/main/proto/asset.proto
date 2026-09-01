@@ -1,0 +1,39 @@
+// This file is intentionally duplicated into both asset-service (the gRPC server) and
+// artwork-dgs (the gRPC client) under each module's src/main/proto/. In a real company this
+// contract would live in one shared schema repository (or an internal artifact/registry) that
+// both sides depend on, so the client and server can never silently drift out of sync — copying
+// it by hand here is a simplification worth noticing, not a recommended practice. See
+// docs/ARCHITECTURE_VS_BLOG.md for the honest list of what this repo simplifies.
+//
+// This is the concrete "Protocol Buffers give you strong typing and easy interface evolution"
+// idea from the blog: both asset-service and artwork-dgs compile this SAME file into generated
+// Java classes (AssetServiceGrpc, ArtworkUrlRequest, ArtworkUrlResponse) at build time via the
+// protobuf-maven-plugin — nobody hand-writes request/response POJOs or manually keeps them in
+// sync.
+
+syntax = "proto3";
+
+package graphvault.asset.v1;
+
+option java_package = "com.graphvault.asset.grpc";
+option java_multiple_files = true;
+
+// Real Netflix's asset/CDN URL-signing systems deal with device capability negotiation, regional
+// CDN routing, DRM licensing, and short-lived signed URLs. This is a deliberately tiny stand-in:
+// given a titleId, hand back one fake "signed" URL per artwork type.
+service AssetService {
+  rpc GetArtworkUrls (ArtworkUrlRequest) returns (ArtworkUrlResponse);
+}
+
+message ArtworkUrlRequest {
+  int64 title_id = 1;
+}
+
+message ArtworkUrlResponse {
+  repeated ArtworkAsset assets = 1;
+}
+
+message ArtworkAsset {
+  string type = 1;       // e.g. BOX_ART, BACKGROUND, LOGO
+  string signed_url = 2; // fake CDN URL with a fake expiring signature query param
+}

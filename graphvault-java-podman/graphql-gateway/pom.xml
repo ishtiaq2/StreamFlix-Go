@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.3.4</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>com.graphvault</groupId>
+    <artifactId>graphql-gateway</artifactId>
+    <version>1.0.0</version>
+    <name>graphql-gateway</name>
+    <description>
+        The single public entry point. Accepts one GraphQL query, splits it by which DGS owns
+        each top-level field, fans those sub-queries out in parallel over virtual threads, and
+        merges the results back into one response -- a deliberately simplified, hand-written
+        stand-in for what Apollo Federation / DGS's real federated gateway does automatically.
+    </description>
+
+    <properties>
+        <java.version>21</java.version>
+        <!-- graphql-java: the reference GraphQL execution/parsing engine for the JVM. DGS
+             itself is built on top of this same library -- we use it here just for its
+             parser + AST printer, to split and reassemble queries, without running a full
+             GraphQL execution engine of our own. -->
+        <graphql-java.version>22.3</graphql-java.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.graphql-java</groupId>
+            <artifactId>graphql-java</artifactId>
+            <version>${graphql-java.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>
